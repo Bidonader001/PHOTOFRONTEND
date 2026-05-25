@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODAI Photobooth</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0a4d4d 0%, #1a6b6b 25%, #2a8a8a 50%, #4daa4d 75%, #7acc7a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 56px;
+            font-weight: 300;
+            letter-spacing: 8px;
+            color: #ffffff;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 4px 15px rgba(0, 0, 0, 0.2));
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .camera-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .camera-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        #videoPreview {
+            width: 100%;
+            height: 280px;
+            background: #000;
+            border-radius: 12px;
+            display: block;
+            margin-bottom: 15px;
+            object-fit: cover;
+        }
+
+        #captureCanvas {
+            display: none;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+        }
+
+        button {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, rgba(77, 170, 77, 0.8) 0%, rgba(122, 204, 122, 0.8) 100%);
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, rgba(77, 170, 77, 1) 0%, rgba(122, 204, 122, 1) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(77, 170, 77, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn-small {
+            padding: 10px 16px;
+            font-size: 11px;
+            flex: 1;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .controls-row .btn-secondary {
+            flex: 1;
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .filters-section,
+        .gallery-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .filter-btn {
+            padding: 10px;
+            font-size: 11px;
+            text-transform: capitalize;
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, rgba(77, 170, 77, 0.8) 0%, rgba(122, 204, 122, 0.8) 100%);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .gallery-preview {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .photo-thumb {
+            width: 100%;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .photo-thumb:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .preview-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .preview-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        #photoPreview {
+            width: 100%;
+            height: auto;
+            max-height: 300px;
+            border-radius: 12px;
+            display: none;
+            margin-bottom: 15px;
+            object-fit: contain;
+        }
+
+        #photoPreview.active {
+            display: block;
+        }
+
+        .status {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            padding: 10px;
+            text-align: center;
+            min-height: 20px;
+        }
+
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-top: 2px solid #ffffff;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 0.6s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .gif-preview {
+            width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            display: none;
+            margin-bottom: 15px;
+            object-fit: contain;
+        }
+
+        .gif-preview.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 36px;
+                letter-spacing: 4px;
+            }
+
+            .filters-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+        }
+
+        .error {
+            color: #ff6b6b;
+            padding: 10px;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 6px;
+            font-size: 12px;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CODAI</h1>
+            <span class="subtitle">Photobooth</span>
+        </header>
+
+        <div class="main-content">
+            <div class="camera-section">
+                <span class="camera-label">Live Camera</span>
+                <video id="videoPreview" autoplay playsinline></video>
+                <canvas id="captureCanvas"></canvas>
+                
+                <div class="error" id="error"></div>
+                
+                <div class="camera-controls">
+                    <button class="btn-primary" id="captureBtn">📸 Capture Photo</button>
+                    <div class="controls-row">
+                        <button class="btn-secondary btn-small" id="startCameraBtn">Start Camera</button>
+                        <button class="btn-secondary btn-small" id="stopCameraBtn">Stop Camera</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="filters-section">
+                    <span class="section-title">Effects</span>
+                    <div class="filters-grid" id="filtersContainer">
+                        <button class="filter-btn active" data-filter="original">Original</button>
+                        <button class="filter-btn" data-filter="grayscale">Grayscale</button>
+                        <button class="filter-btn" data-filter="sepia">Sepia</button>
+                        <button class="filter-btn" data-filter="blur">Blur</button>
+                        <button class="filter-btn" data-filter="bright">Bright</button>
+                        <button class="filter-btn" data-filter="contrast">Contrast</button>
+                        <button class="filter-btn" data-filter="cool">Cool</button>
+                    </div>
+                    <button class="btn-secondary" id="downloadBtn" style="width: 100%;">⬇ Download</button>
+                </div>
+
+                <div class="gallery-section">
+                    <span class="section-title">Gallery</span>
+                    <div class="gallery-preview" id="galleryPreview"></div>
+                    <button class="btn-primary" id="createGifBtn" style="width: 100%; margin-bottom: 10px;">🎬 Create GIF</button>
+                    <button class="btn-secondary" id="clearGalleryBtn" style="width: 100%;">Clear All</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-section" style="margin-top: 20px;">
+            <span class="preview-label">Preview</span>
+            <div id="status" class="status"></div>
+            <img id="photoPreview" alt="Preview">
+            <img id="gifPreview" class="gif-preview" alt="GIF Preview">
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_URL = 'https://YOUR_RENDER_URL.onrender.com'; // Update this with your Render backend URL
+        
+        // DOM Elements
+        const videoPreview = document.getElementById('videoPreview');
+        const captureCanvas = document.getElementById('captureCanvas');
+        const captureBtn = document.getElementById('captureBtn');
+        const startCameraBtn = document.getElementById('startCameraBtn');
+        const stopCameraBtn = document.getElementById('stopCameraBtn');
+        const photoPreview = document.getElementById('photoPreview');
+        const galleryPreview = document.getElementById('galleryPreview');
+        const filtersContainer = document.getElementById('filtersContainer');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const createGifBtn = document.getElementById('createGifBtn');
+        const clearGalleryBtn = document.getElementById('clearGalleryBtn');
+        const status = document.getElementById('status');
+        const errorElement = document.getElementById('error');
+        const gifPreview = document.getElementById('gifPreview');
+
+        // State
+        let currentPhotoId = null;
+        let capturedPhotos = [];
+        let selectedFilter = 'original';
+        let currentFilteredImage = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            captureBtn.addEventListener('click', capturePhoto);
+            startCameraBtn.addEventListener('click', startCamera);
+            stopCameraBtn.addEventListener('click', stopCamera);
+            downloadBtn.addEventListener('click', downloadPhoto);
+            createGifBtn.addEventListener('click', createGif);
+            clearGalleryBtn.addEventListener('click', clearGallery);
+
+            filtersContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('filter-btn')) {
+                    applyFilter(e.target.dataset.filter);
+                }
+            });
+        }
+
+        async function startCamera() {
+            try {
+                errorElement.classList.remove('show');
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    }
+                });
+                videoPreview.srcObject = stream;
+                showStatus('Camera started ✓');
+            } catch (err) {
+                showError('Camera access denied: ' + err.message);
+            }
+        }
+
+        function stopCamera() {
+            const stream = videoPreview.srcObject;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                videoPreview.srcObject = null;
+                showStatus('Camera stopped');
+            }
+        }
+
+        async function capturePhoto() {
+            try {
+                if (!videoPreview.srcObject) {
+                    showError('Please start camera first');
+                    return;
+                }
+
+                // Setup canvas
+                const width = videoPreview.videoWidth;
+                const height = videoPreview.videoHeight;
+                captureCanvas.width = width;
+                captureCanvas.height = height;
+
+                const ctx = captureCanvas.getContext('2d');
+                ctx.drawImage(videoPreview, 0, 0, width, height);
+
+                // Convert to blob and send to backend
+                captureCanvas.toBlob(async (blob) => {
+                    showStatus('📤 Uploading...');
+                    
+                    const formData = new FormData();
+                    formData.append('image', blob, 'photo.jpg');
+
+                    try {
+                        const response = await fetch(`${API_URL}/api/upload`, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`Upload failed: ${response.statusText}`);
+                        }
+
+                        const data = await response.json();
+                        currentPhotoId = data.photo_id;
+                        capturedPhotos.push(currentPhotoId);
+
+                        // Display original
+                        selectedFilter = 'original';
+                        currentFilteredImage = captureCanvas.toDataURL('image/jpeg');
+                        displayPhoto(currentFilteredImage);
+                        updateGallery();
+                        showStatus('✓ Photo captured!');
+                    } catch (err) {
+                        showError('Upload error: ' + err.message);
+                    }
+                }, 'image/jpeg', 0.9);
+            } catch (err) {
+                showError('Capture error: ' + err.message);
+            }
+        }
+
+        async function applyFilter(filter) {
+            if (!currentPhotoId) {
+                showError('No photo selected');
+                return;
+            }
+
+            // Update UI
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+
+            selectedFilter = filter;
+
+            if (filter === 'original') {
+                currentFilteredImage = captureCanvas.toDataURL('image/jpeg');
+                displayPhoto(currentFilteredImage);
+                return;
+            }
+
+            try {
+                showStatus('🎨 Applying filter...');
+                
+                const response = await fetch(`${API_URL}/api/apply-filter/${currentPhotoId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filter })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Filter failed: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                currentFilteredImage = data.image;
+                displayPhoto(currentFilteredImage);
+                showStatus(`✓ ${filter} applied`);
+            } catch (err) {
+                showError('Filter error: ' + err.message);
+            }
+        }
+
+        function displayPhoto(imageData) {
+            photoPreview.src = imageData;
+            photoPreview.classList.add('active');
+        }
+
+        function updateGallery() {
+            galleryPreview.innerHTML = capturedPhotos.map((id, idx) => 
+                `<img class="photo-thumb" src="${currentPhotoId === id ? currentFilteredImage : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22%3E%3C/svg%3E'}" alt="Photo ${idx + 1}" data-id="${id}">`
+            ).join('');
+        }
+
+        function downloadPhoto() {
+            if (!currentFilteredImage) {
+                showError('No photo to download');
+                return;
+            }
+
+            const link = document.createElement('a');
+            link.href = currentFilteredImage;
+            link.download = `codai-photo-${new Date().getTime()}.jpg`;
+            link.click();
+            showStatus('📥 Download started');
+        }
+
+        async function createGif() {
+            if (capturedPhotos.length < 2) {
+                showError('Need at least 2 photos for GIF');
+                return;
+            }
+
+            try {
+                showStatus('🎬 Creating GIF...');
+                
+                const response = await fetch(`${API_URL}/api/create-gif`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ photo_ids: capturedPhotos })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`GIF creation failed: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                gifPreview.src = data.gif;
+                gifPreview.classList.add('active');
+
+                // Also allow download
+                const link = document.createElement('a');
+                link.href = data.gif;
+                link.download = `codai-booth-${new Date().getTime()}.gif`;
+                link.click();
+
+                showStatus('✓ GIF created & downloaded!');
+            } catch (err) {
+                showError('GIF error: ' + err.message);
+            }
+        }
+
+        function clearGallery() {
+            capturedPhotos = [];
+            currentPhotoId = null;
+            currentFilteredImage = null;
+            photoPreview.classList.remove('active');
+            gifPreview.classList.remove('active');
+            galleryPreview.innerHTML = '';
+            showStatus('Gallery cleared');
+        }
+
+        function showStatus(message) {
+            status.textContent = message;
+        }
+
+        function showError(message) {
+            errorElement.textContent = '⚠ ' + message;
+            errorElement.classList.add('show');
+            setTimeout(() => {
+                errorElement.classList.remove('show');
+            }, 4000);
+        }
+
+        // Auto-start camera on load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                startCamera();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
